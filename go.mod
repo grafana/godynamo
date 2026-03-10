@@ -1,4 +1,4 @@
-module github.com/btnguyen2k/godynamo
+module github.com/grafana/godynamo/v2
 
 go 1.18
 

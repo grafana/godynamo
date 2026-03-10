@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/btnguyen2k/godynamo"
+	"github.com/grafana/godynamo/v2"
 	"reflect"
 	"strconv"
 	"strings"

@@ -1,5 +1,37 @@
 # godynamo release notes
 
+## 2026-03-10 - v2.0.0 (Grafana fork)
+
+New module path: `github.com/grafana/godynamo/v2` (forked from `github.com/btnguyen2k/godynamo` v1.3.0).
+
+### Changed
+
+- BREAKING: Removed `RegisterAWSConfig` and `DeregisterAWSConfig` (global state)
+- BREAKING: `Driver.Open` no longer reads global AWS config; it uses only DSN credentials
+- Removed package-level `awsConfig` variable and associated mutex
+
+### Added/Refactoring
+
+- New `Connector` type implementing `database/sql/driver.Connector` for per-instance AWS configuration
+- New `NewConnector(dsn, *aws.Config)` constructor for use with `sql.OpenDB`
+- Extracted shared connection logic into internal `openConn` helper
+
+### Migration from v1.3.0
+
+Replace:
+```go
+godynamo.RegisterAWSConfig(cfg)
+db, err := sql.Open("godynamo", dsn)
+```
+
+With:
+```go
+connector := godynamo.NewConnector(dsn, &cfg)
+db := sql.OpenDB(connector)
+```
+
+If using DSN credentials only (no `aws.Config`), `sql.Open("godynamo", dsn)` continues to work unchanged.
+
 ## 2024-05-02 - v1.3.0
 
 ### Added/Refactoring

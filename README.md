@@ -1,10 +1,7 @@
 # godynamo
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/btnguyen2k/godynamo)](https://goreportcard.com/report/github.com/btnguyen2k/godynamo)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/btnguyen2k/godynamo)](https://pkg.go.dev/github.com/btnguyen2k/godynamo)
-[![Actions Status](https://github.com/btnguyen2k/godynamo/workflows/godynamo/badge.svg)](https://github.com/btnguyen2k/godynamo/actions)
-[![codecov](https://codecov.io/gh/btnguyen2k/godynamo/branch/main/graph/badge.svg)](https://codecov.io/gh/btnguyen2k/godynamo)
-[![Release](https://img.shields.io/github/release/btnguyen2k/godynamo.svg?style=flat-square)](RELEASE-NOTES.md)
+> **This is a Grafana fork of [btnguyen2k/godynamo](https://github.com/btnguyen2k/godynamo).**
+> It replaces global AWS configuration state with per-connection configuration via Go's `driver.Connector` interface, making it safe for multitenant use. See [Using `aws.Config`](#using-awsconfig) below.
 
 Go driver for [AWS DynamoDB](https://aws.amazon.com/dynamodb/) which can be used with the standard [database/sql](https://golang.org/pkg/database/sql/) package.
 
@@ -17,7 +14,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/btnguyen2k/godynamo"
+	_ "github.com/grafana/godynamo/v2"
 )
 
 func main() {
@@ -65,39 +62,40 @@ Region=<aws-region>
 
 ## Using `aws.Config`:
 
-Since v1.3.0, `godynamo` supports using `aws.Config` to create the connection to DynamoDB:
+Use `godynamo.NewConnector` with `sql.OpenDB` to supply an `aws.Config` directly.
+This is the recommended approach for multitenant applications where each connection
+may need different credentials, regions, or endpoints, and also supports more
+advanced authentication options like assume role, EC2 instance IAM, etc.
 
 ```go
 package main
 
 import (
 	"database/sql"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/btnguyen2k/godynamo"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/grafana/godynamo/v2"
 )
 
 func main() {
-	driver := "godynamo"
-	awscfg := aws.Config{
-        Region: "<aws-region>",
-        Credentials: aws.StaticCredentialsProvider{
-            Value: aws.Credentials{
-                AccessKeyID:     "<access-key-id>",
-                SecretAccessKey: "<secret-key>",
-			},
-		},
-    }
-	godynamo.RegisterAWSConfig(awscfg)
-	
-	db, err := sql.Open(driver, "dummy")
-	if err != nil {
-		panic(err)
+	cfg := aws.Config{
+		Region: "<aws-region>",
+		Credentials: credentials.NewStaticCredentialsProvider(
+			"<access-key-id>", "<secret-key>", ""),
 	}
+	dsn := "Region=<aws-region>;AkId=<access-key-id>;SecretKey=<secret-key>"
+	connector := godynamo.NewConnector(dsn, &cfg)
+	db := sql.OpenDB(connector)
 	defer db.Close()
-	
+
 	// db instance is ready to use
 }
 ```
+
+When an `aws.Config` is provided, its credentials and region take precedence.
+DSN parameters such as `TimeoutMs` and `Endpoint` are still applied as defaults
+when not set in the `aws.Config`. Pass `nil` for the config to use only DSN credentials.
 
 ## Supported statements:
 
@@ -215,7 +213,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Support and Contribution
 
-Feel free to create [pull requests](https://github.com/btnguyen2k/godynamo/pulls) or [issues](https://github.com/btnguyen2k/godynamo/issues) to report bugs or suggest new features.
+Feel free to create [pull requests](https://github.com/grafana/godynamo/pulls) or [issues](https://github.com/grafana/godynamo/issues) to report bugs or suggest new features.
 Please search the existing issues before filing new issues to avoid duplicates. For new issues, file your bug or feature request as a new issue.
 
 If you find this project useful, please star it.
