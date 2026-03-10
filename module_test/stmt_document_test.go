@@ -3,7 +3,7 @@ package godynamo_test
 import (
 	"fmt"
 	"github.com/aws/smithy-go"
-	"github.com/btnguyen2k/godynamo"
+	"github.com/grafana/godynamo/v2"
 	"reflect"
 	"strings"
 	"testing"

@@ -12,13 +12,12 @@ on:
   workflow_call:
 
 env:
-  COVER_PKG: 'github.com/btnguyen2k/godynamo'
+  COVER_PKG: 'github.com/grafana/godynamo/v2'
   AWS_REGION: 'us-east-1'
   AWS_ACCESS_KEY_ID: 'DUMMYID'
   AWS_SECRET_ACCESS_KEY: 'DUMMYKEY'
   AWS_DYNAMODB_ENDPOINT: 'http://localhost:8000'
   AWS_DYNAMODB_URL: 'Endpoint=http://localhost:8000'
-  TAG_PREFIX: 'v'
 
 jobs:
   GoFmt:
@@ -26,9 +25,9 @@ jobs:
     name: Check format with go fmt
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Go env
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version: 'stable'
       - name: Run go fmt
@@ -41,55 +40,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Go env
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version: 'stable'
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: latest
           only-new-issues: true
-
-  ReleaseDryRun:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    outputs:
-      RESULT: ${{ steps.release_dry_run.outputs.result }}
-      VERSION: ${{ steps.release_dry_run.outputs.releaseVersion }}
-      RELEASE_NOTES: ${{ steps.release_dry_run.outputs.releaseNotes }}
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-      - name: Release (dry-run)
-        id: release_dry_run
-        uses: btnguyen2k/action-semrelease@v4
-        with:
-          dry-run: true
-          auto-mode: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          tag-major-release: false
-          tag-minor-release: false
-          branches: ${{ github.ref_name }}
-          tag-prefix: ${{ env.TAG_PREFIX }}
-          tag-only: true
 
   TestParsing:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.18', 'oldstable', 'stable' ]
+        go: [ 'oldstable', 'stable' ]
     name: Run parsing tests with Go ${{ matrix.go }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Go env
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version: ${{ matrix.go }}
       - name: Run tests
@@ -97,7 +69,7 @@ jobs:
           go version
           go mod tidy && go test -v -timeout 9999s -count 1 -p 1 -cover -coverprofile coverage.txt ./
       - name: Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
@@ -108,13 +80,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.18', 'oldstable', 'stable' ]
+        go: [ 'oldstable', 'stable' ]
     name: Run tests against local AWS DynamoDB with Go ${{ matrix.go }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Go env
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version: ${{ matrix.go }}
       - name: Start local AWS DynamoDB server
@@ -127,7 +99,7 @@ jobs:
             && go test -v -timeout 9999s -count 1 -p 1 -cover -coverpkg="${COVER_PKG}" -coverprofile coverage_local.txt ./ \
             && cd ..
       - name: Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:

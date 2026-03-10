@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/btnguyen2k/godynamo"
+	"github.com/grafana/godynamo/v2"
 	"reflect"
 	"sort"
 	"strconv"

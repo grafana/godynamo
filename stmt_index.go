@@ -196,7 +196,7 @@ type StmtCreateGSI struct {
 }
 
 func (s *StmtCreateGSI) parse() error {
-	if err := s.Stmt.parseWithOpts(s.withOptsStr); err != nil {
+	if err := s.parseWithOpts(s.withOptsStr); err != nil {
 		return err
 	}
 
@@ -425,7 +425,7 @@ type StmtAlterGSI struct {
 }
 
 func (s *StmtAlterGSI) parse() error {
-	if err := s.Stmt.parseWithOpts(s.withOptsStr); err != nil {
+	if err := s.parseWithOpts(s.withOptsStr); err != nil {
 		return err
 	}
 

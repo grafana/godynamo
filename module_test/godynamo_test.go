@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/btnguyen2k/consu/reddo"
-	"github.com/btnguyen2k/godynamo"
+	"github.com/grafana/godynamo/v2"
 	"os"
 	"reflect"
 	"strconv"
@@ -38,20 +38,17 @@ func Test_OpenDatabase(t *testing.T) {
 	}
 }
 
-func Test_OpenDatabase_With_AWSConfig_Endpoint(t *testing.T) {
-	testName := "Test_OpenDatabase_With_AWSConfig_Endpoint"
-	dbdriver := "godynamo"
+func Test_OpenDatabase_With_Connector_Endpoint(t *testing.T) {
+	testName := "Test_OpenDatabase_With_Connector_Endpoint"
 
 	dsnEndpoint := "http://1.2.3.4:1234/"
 	dsn := fmt.Sprintf("Region=dummy-region;AkId=dummy-key-id;SecretKey=dummy-key;Endpoint=%s", dsnEndpoint)
 
 	{
 		// without AWSConfig
-		db, err := sql.Open(dbdriver, dsn)
-		if err != nil {
-			t.Fatalf("%s failed: %s", testName+"/open", err)
-		}
-		_, err = db.QueryContext(context.Background(), "LIST TABLES")
+		connector := godynamo.NewConnector(dsn, nil)
+		db := sql.OpenDB(connector)
+		_, err := db.QueryContext(context.Background(), "LIST TABLES")
 		if err == nil {
 			t.Fatalf("%s failed: expected error", testName+"/query")
 		}
@@ -60,19 +57,15 @@ func Test_OpenDatabase_With_AWSConfig_Endpoint(t *testing.T) {
 		}
 	}
 
-	defer godynamo.DeregisterAWSConfig()
-
-	// with AWSConfig
+	// with AWSConfig that overrides endpoint
 	cfgEndpoint := "http://5.6.7.8:5678/"
-	godynamo.RegisterAWSConfig(aws.Config{
-		BaseEndpoint: aws.String(cfgEndpoint),
-	})
 	{
-		db, err := sql.Open(dbdriver, dsn)
-		if err != nil {
-			t.Fatalf("%s failed: %s", testName+"/open", err)
+		cfg := aws.Config{
+			BaseEndpoint: aws.String(cfgEndpoint),
 		}
-		_, err = db.QueryContext(context.Background(), "LIST TABLES")
+		connector := godynamo.NewConnector(dsn, &cfg)
+		db := sql.OpenDB(connector)
+		_, err := db.QueryContext(context.Background(), "LIST TABLES")
 		if err == nil {
 			t.Fatalf("%s failed: expected error", testName+"/query")
 		}
@@ -81,14 +74,12 @@ func Test_OpenDatabase_With_AWSConfig_Endpoint(t *testing.T) {
 		}
 	}
 
-	// with empty AWSConfig
-	godynamo.RegisterAWSConfig(aws.Config{})
+	// with empty AWSConfig (falls back to DSN endpoint)
 	{
-		db, err := sql.Open(dbdriver, dsn)
-		if err != nil {
-			t.Fatalf("%s failed: %s", testName+"/open", err)
-		}
-		_, err = db.QueryContext(context.Background(), "LIST TABLES")
+		cfg := aws.Config{}
+		connector := godynamo.NewConnector(dsn, &cfg)
+		db := sql.OpenDB(connector)
+		_, err := db.QueryContext(context.Background(), "LIST TABLES")
 		if err == nil {
 			t.Fatalf("%s failed: expected error", testName+"/query")
 		}
@@ -175,23 +166,29 @@ func TestDriver_Close(t *testing.T) {
 	}
 }
 
-func TestDriver_Open_With_AWSConfig(t *testing.T) {
-	testName := "TestDriver_Open_With_AWSConfig"
-	godynamo.RegisterAWSConfig(aws.Config{
+func TestDriver_Open_With_Connector(t *testing.T) {
+	testName := "TestDriver_Open_With_Connector"
+	url := strings.ReplaceAll(os.Getenv("AWS_DYNAMODB_URL"), `"`, "")
+	if url == "" {
+		t.Skipf("%s skipped", testName)
+	}
+
+	cfg := aws.Config{
 		Region: "us-west-2",
 		Credentials: credentials.NewStaticCredentialsProvider(
 			"abcdefg123456789", "abcdefg123456789", ""),
-	})
-	defer godynamo.DeregisterAWSConfig()
-	db := _openDb(t, testName)
+	}
+	connector := godynamo.NewConnector(url, &cfg)
+	db := sql.OpenDB(connector)
 	defer func() { _ = db.Close() }()
 	if err := db.Ping(); err != nil {
 		t.Fatalf("%s failed: %s", testName, err)
 	}
 
 	// with empty aws.Config
-	godynamo.RegisterAWSConfig(aws.Config{})
-	dbWithEmptyAWSConfig := _openDb(t, testName)
+	emptyCfg := aws.Config{}
+	connectorEmpty := godynamo.NewConnector(url, &emptyCfg)
+	dbWithEmptyAWSConfig := sql.OpenDB(connectorEmpty)
 	defer func() { _ = dbWithEmptyAWSConfig.Close() }()
 	if err := dbWithEmptyAWSConfig.Ping(); err != nil {
 		t.Fatalf("%s failed: %s", testName, err)
