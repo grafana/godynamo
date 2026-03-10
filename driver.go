@@ -89,10 +89,12 @@ func openConn(connStr string, cfg *aws.Config) (driver.Conn, error) {
 			opts.EndpointOptions.DisableHTTPS = true
 		}
 	}
-	client := dynamodb.New(opts)
 
+	var client *dynamodb.Client
 	if cfg != nil {
 		client = dynamodb.NewFromConfig(*cfg, mergeDynamoDBOptions(opts))
+	} else {
+		client = dynamodb.New(opts)
 	}
 
 	return &Conn{client: client, timeout: time.Duration(timeoutMs) * time.Millisecond}, nil
@@ -145,7 +147,9 @@ func mergeDynamoDBOptions(providedOpts dynamodb.Options) func(*dynamodb.Options)
 		if defaultOpts.Credentials == nil {
 			defaultOpts.Credentials = providedOpts.Credentials
 		}
-		defaultOpts.HTTPClient = providedOpts.HTTPClient
+		if defaultOpts.HTTPClient == nil {
+			defaultOpts.HTTPClient = providedOpts.HTTPClient
+		}
 
 		if defaultOpts.BaseEndpoint == nil {
 			defaultOpts.BaseEndpoint = providedOpts.BaseEndpoint
