@@ -18,6 +18,7 @@ env:
   AWS_SECRET_ACCESS_KEY: 'DUMMYKEY'
   AWS_DYNAMODB_ENDPOINT: 'http://localhost:8000'
   AWS_DYNAMODB_URL: 'Endpoint=http://localhost:8000'
+  LOCAL_DYNAMODB_SHA: d89f8fcc6b1a39cb35976c248ed42a28c66ae00dc043099210f5571e42648ab4
 
 jobs:
   GoFmt:
@@ -68,13 +69,6 @@ jobs:
         run: |
           go version
           go mod tidy && go test -v -timeout 9999s -count 1 -p 1 -cover -coverprofile coverage.txt ./
-      - name: Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          flags: parsing
-          name: parsing
 
   TestLocal:
     runs-on: ubuntu-latest
@@ -90,7 +84,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - name: Start local AWS DynamoDB server
-        run: docker run -d --name dynamodb -p 8000:8000 amazon/dynamodb-local -jar DynamoDBLocal.jar -inMemory -sharedDb
+        run: docker run -d --name dynamodb -p 8000:8000 amazon/dynamodb-local@sha256:${{ LOCAL_DYNAMODB_SHA }} -jar DynamoDBLocal.jar -inMemory -sharedDb
       - name: Run tests
         run: |
           go version
@@ -98,10 +92,3 @@ jobs:
             && go mod tidy \
             && go test -v -timeout 9999s -count 1 -p 1 -cover -coverpkg="${COVER_PKG}" -coverprofile coverage_local.txt ./ \
             && cd ..
-      - name: Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          flags: other
-          name: other

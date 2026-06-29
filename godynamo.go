@@ -115,7 +115,7 @@ func ToAttributeValue(value interface{}) (types.AttributeValue, error) {
 //	types.AttributeValueMemberBOOL -> "BOOL"
 func nameFromAttributeValue(v interface{}) string {
 	// De-reference pointer
-	for reflect.TypeOf(v).Kind() == reflect.Ptr {
+	for reflect.TypeOf(v).Kind() == reflect.Pointer {
 		v = reflect.ValueOf(v).Elem().Interface()
 	}
 

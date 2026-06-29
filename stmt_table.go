@@ -351,7 +351,7 @@ type StmtAlterTable struct {
 }
 
 func (s *StmtAlterTable) parse() error {
-	if err := s.Stmt.parseWithOpts(s.withOptsStr); err != nil {
+	if err := s.parseWithOpts(s.withOptsStr); err != nil {
 		return err
 	}
 
